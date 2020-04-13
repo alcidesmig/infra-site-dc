@@ -1,0 +1,48 @@
+{
+  "connection": "default",
+  "collectionName": "pie",
+  "info": {
+    "name": "pie",
+    "description": ""
+  },
+  "options": {
+    "timestamps": true
+  },
+  "attributes": {
+    "titulo": {
+      "required": true,
+      "type": "string"
+    },
+    "coordenador": {
+      "type": "string",
+      "required": true
+    },
+    "descricao": {
+      "type": "text"
+    },
+    "documento": {
+      "model": "file",
+      "via": "related",
+      "plugin": "upload",
+      "required": true
+    },
+    "alunos_envolvidos": {
+      "type": "string"
+    },
+    "data_inicio": {
+      "type": "date"
+    },
+    "data_termino": {
+      "type": "date"
+    },
+    "proex_num": {
+      "type": "string"
+    },
+    "em_andamento": {
+      "type": "boolean"
+    },
+    "teste": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  api:
+    build: .
+    image: strapi/strapi
+    #image: strapi_with_nodemailer
+    environment:
+      - APP_NAME=strapi-app
+      - DATABASE_CLIENT=mongo
+      - DATABASE_HOST=db
+      - DATABASE_PORT=27017
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USERNAME=${DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_SSL=false
+      - DATABASE_AUTHENTICATION_DATABASE=admin
+      - HOST=localhost
+      - user_email=${user_email}
+      - user_password=${user_password}
+    volumes:
+      - ./api-config:/usr/src/api/api-config
+      - ./backup/uploads:/usr/src/api/backup/uploads
+      - ./strapi-app:/usr/src/api/strapi-app    
+    #command: "/bin/sh -c 'crontab -l > mycron; echo '0 0 0 * * ?  rm /usr/src/api-config/api; cp /usr/src/strapi-app/api /usr/src/api-config/api -r' >> mycron; crontab mycron; rm mycron'"
+#command: "/bin/sh -c 'cd /usr/src/api/strapi-app && npm install'"
+# command: "/bin/sh -c 'cd /srv/app; rm plugins/users-permissions/config/jwt.json plugins/users-permissions/models/User.settings.json; cp ../api-config/User.settings.json plugins/users-permissions/models/User.settings.json; cp ../api-config/jwt.json plugins/users-permissions/config/jwt.json; rm -rf config; cp ../api-config/config config -r; rm -rf api; ln -s ../api-config/api api'"
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mongo
+    environment:
+      - MONGO_INITDB_DATABASE=${DATABASE_NAME}
+      - MONGO_INITDB_ROOT_USERNAME=${DATABASE_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - ./db:/data/db
+    restart: always
+
+  frontend-builder:
+    image: node:11.1.0-alpine
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/frontend
+    command: "/bin/sh -c 'cd /frontend && npm install && npm run build'"
+
+  nginx:
+    image: nginx:1.15-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./frontend:/frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
